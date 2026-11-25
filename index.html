@@ -152,7 +152,7 @@ button:focus-visible{outline:4px solid var(--mint);outline-offset:2px}
   <section class="quiz" aria-label="けいさんもんだい">
     <div class="chips" id="modes"></div>
     <div class="chips" id="ranges"></div>
-    <p class="rule">むずかしい もんだいほど くだものが たくさん もらえて、レアも でやすいよ</p>
+    <p class="rule">むずかしい もんだいほど くだものが たくさん もらえて、レアも でやすいよ。レアたまごの かくりつ <b id="eggRate">15</b>%</p>
     <div class="stats"><span>きょう せいかい <b id="today">0</b></span><span>れんぞく <b id="streak">0</b></span><span>5もん れんぞくで おまけ！</span></div>
     <div class="q" id="q" aria-live="polite"><span id="qa">3</span><span id="qop">+</span><span id="qb">4</span><span>=</span><span class="ans empty" id="ans">?</span></div>
     <div class="msg" id="msg"></div>
@@ -174,7 +174,8 @@ button:focus-visible{outline:4px solid var(--mint);outline-offset:2px}
 const $=id=>document.getElementById(id);
 const STAGES=[{n:'たまご',t:0},{n:'ベビー',t:5},{n:'こども',t:20},{n:'おとな',t:50},{n:'スター',t:100}];
 const SPECIES=['もちもち','ことり','うさぎ','こねこ'];
-const RARE_EGG=.15;
+const RARE_EGG=15;
+const eggRate=()=>Math.min(100,RARE_EGG+(S.rareBoost||0));
 const DEFNAME=['モチ','ピヨ','ミミ','タマ'];
 const COLS=[
   {none:'#ffe08a',plus:'#ff9ec4',minus:'#b7a0ff',times:'#ffbd66'},
@@ -192,7 +193,7 @@ const RARE={10:.03,20:.08,100:.12};
 const LINES=[['…ごとごと','なかで うごいた！','あったかい…'],['ぴぃ！','おなかすいた〜','あそぼ！'],['もっと たべたい！','けいさん すごいね！','なでて〜'],['いっしょに がんばろう！','きょうも えらい！','おいしかった！'],['キミは てんさい！','ずっと いっしょだよ','キラキラ〜！']];
 const WISHLINE={plus:'いちごが たべたいなぁ',minus:'たまには ぶどうも たべたいなぁ',times:'みかんって どんな あじかな？'};
 const today=new Date().toDateString();
-const blank=()=>({name:'モチ',bag:{plus:0,minus:0,times:0,rainbow:0,gold:0},fed:{plus:0,minus:0,times:0},total:0,gen:0,album:[],wish:null,mode:'plus',range:10,day:today,todayOk:0,sound:true,saved:0});
+const blank=()=>({name:'モチ',bag:{plus:0,minus:0,times:0,rainbow:0,gold:0},fed:{plus:0,minus:0,times:0},total:0,gen:0,album:[],wish:null,rareBoost:0,mode:'plus',range:10,day:today,todayOk:0,sound:true,saved:0});
 function norm(v){const b=blank(),o=Object.assign(b,v);o.bag=Object.assign(blank().bag,v.bag||{});o.fed=Object.assign(blank().fed,v.fed||{});
   if(!Array.isArray(o.album))o.album=[];if(typeof o.gen!=='number')o.gen=0;if(o.day!==today){o.day=today;o.todayOk=0}return o}
 let S=blank();
@@ -313,7 +314,7 @@ function renderStatus(){
   ['plus','minus','times','rainbow','gold'].forEach(k=>{const el=$('f-'+k);el.innerHTML=fruitSVG(k)+'<span>'+S.bag[k]+'</span>';el.setAttribute('aria-label',FRUIT[k]+'を あげる（'+S.bag[k]+'こ）');
     if(k==='rainbow'||k==='gold')el.hidden=!S.bag[k];el.disabled=!S.bag[k]});
   const n=Object.values(S.bag).reduce((a,b)=>a+b,0);$('feedOne').disabled=!n;$('feedAll').disabled=n<2;
-  $('today').textContent=S.todayOk;$('streak').textContent=streak;$('soundBtn').textContent='おと '+(S.sound?'ON':'OFF');
+  $('today').textContent=S.todayOk;$('eggRate').textContent=eggRate();$('streak').textContent=streak;$('soundBtn').textContent='おと '+(S.sound?'ON':'OFF');
 }
 function renderChips(){
   $('modes').innerHTML=MODES.map(([k,l])=>`<button class="chip" data-m="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join('');
@@ -372,13 +373,14 @@ function pick(){if(S.wish&&S.bag[S.wish]>0)return S.wish;const k=NORMAL.filter(k
 function feed(k){
   if(anyOv()||stageOf(S.total)>=4)return false;k=k||pick();if(!k||S.bag[k]<=0)return false;
   const before=stageOf(S.total),wished=k===S.wish,v=VALUE[k]||(wished?2:1);
-  S.bag[k]--;if(NORMAL.includes(k))S.fed[k]++;S.total+=v;if(wished)S.wish=null;
+  S.bag[k]--;if(NORMAL.includes(k))S.fed[k]++;else S.rareBoost=(S.rareBoost||0)+1;S.total+=v;if(wished)S.wish=null;
   const from=$('f-'+k).getBoundingClientRect(),to=$('pet').getBoundingClientRect(),f=document.createElement('div');
   f.className='fly';f.innerHTML=fruitSVG(k);f.style.left=from.left+'px';f.style.top=from.top+'px';document.body.appendChild(f);
   const dx=to.left+to.width/2-20-from.left,dy=to.top+to.height*.55-20-from.top;
   try{f.animate([{transform:'translate(0,0) scale(1)'},{transform:`translate(${dx/2}px,${dy-80}px) scale(1.3)`},{transform:`translate(${dx}px,${dy}px) scale(.4)`,opacity:.6}],{duration:550,easing:'ease-in'})}catch(e){}
   setTimeout(()=>{f.remove();renderPet(true);hearts(v>1?6:3);tone(v>1?[660,880,1175]:[520,780],.09);
-    say(wished?'これ たべたかったの！ ありがとう！':VALUE[k]?'キラキラの あじ〜！':['もぐもぐ…','おいしい！','しあわせ〜'][rnd(0,2)]);
+    if(VALUE[k])pop('レアたまご '+eggRate()+'%');
+    say(wished?'これ たべたかったの！ ありがとう！':VALUE[k]?'キラキラの あじ〜！ レアたまごが でやすく なったよ':['もぐもぐ…','おいしい！','しあわせ〜'][rnd(0,2)]);
     renderStatus();renderWish();if(!wished)maybeWish();save();
     const after=stageOf(S.total);if(after>before)setTimeout(()=>evolve(after),500);else setTimeout(()=>renderPet(false),900)},540);
   renderStatus();return true;
@@ -391,7 +393,7 @@ function evolve(st){
   $('evoOv').classList.add('show');tone([523,659,784,1047,1319],.16,'triangle');renderPet(false);renderStatus();renderWish();
 }
 function thanks(){
-  if(typeof S.nextRare!=='boolean'){S.nextRare=Math.random()<RARE_EGG;save()}
+  if(typeof S.nextRare!=='boolean'){S.nextRare=Math.random()*100<eggRate();if(S.nextRare)S.rareBoost=0;save()}
   $('thxStar').innerHTML=petSVG(S.gen,4,true,dominant(),0,!!S.rare);$('thxEgg').innerHTML=S.nextRare?goldEggSVG(0):eggSVG(S.gen+1,0);
   $('thxTxt').textContent=S.name+'から おれいの たまごを もらったよ。'+(S.nextRare?'……あれ？ キンキラの レアな たまご だ！ なにが うまれるかな？ ':'')+S.name+'は なかまに なって、そばで みまもってくれるよ。';
   $('thxOv').classList.add('show');
