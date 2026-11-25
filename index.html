@@ -117,6 +117,10 @@ button:focus-visible{outline:4px solid var(--mint);outline-offset:2px}
 .thx .pair{display:flex;justify-content:center;align-items:flex-end;gap:4px}
 .thx .pair div{width:min(190px,44vw);aspect-ratio:1}.thx .pair div+div{width:min(110px,26vw)}
 .thx svg{width:100%;height:100%;overflow:visible}
+.rays{animation:spin 9s linear infinite;transform-origin:100px 122px}@keyframes spin{to{transform:rotate(360deg)}}
+.tw{animation:tw 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}@keyframes tw{50%{opacity:.25;transform:scale(.45)}}
+.glow{animation:glow 2s ease-in-out infinite}@keyframes glow{50%{opacity:.25}}
+#stageName.gold{background:linear-gradient(90deg,#e6a800,#ffb703)}
 .rule{font-size:13px;color:var(--soft);font-weight:700;margin:-4px 0 0}
 </style>
 </head>
@@ -170,6 +174,7 @@ button:focus-visible{outline:4px solid var(--mint);outline-offset:2px}
 const $=id=>document.getElementById(id);
 const STAGES=[{n:'たまご',t:0},{n:'ベビー',t:5},{n:'こども',t:20},{n:'おとな',t:50},{n:'スター',t:100}];
 const SPECIES=['もちもち','ことり','うさぎ','こねこ'];
+const RARE_EGG=.15;
 const DEFNAME=['モチ','ピヨ','ミミ','タマ'];
 const COLS=[
   {none:'#ffe08a',plus:'#ff9ec4',minus:'#b7a0ff',times:'#ffbd66'},
@@ -210,6 +215,44 @@ function fruitSVG(k){
 }
 function dominant(f=S.fed){const m=Math.max(f.plus,f.minus,f.times);if(!m)return'none';return NORMAL.find(k=>f[k]===m)}
 function stageOf(t){let s=0;STAGES.forEach((x,i)=>{if(t>=x.t)s=i});return s}
+let gid=0;
+function twinkles(pts){return pts.map(([x,y,r],i)=>`<path class="tw" style="animation-delay:${i*.35}s" d="M${x} ${y-r}l${r*.28} ${r*.72} ${r*.72} ${r*.28}-${r*.72} ${r*.28}-${r*.28} ${r*.72}-${r*.28}-${r*.72}-${r*.72}-${r*.28} ${r*.72}-${r*.28}z" fill="#fff6b0" stroke="#ffd23f" stroke-width="1.5"/>`).join('')}
+function goldEggSVG(p){const id='ge'+(++gid);
+  const rays=Array.from({length:10},(_,i)=>`<path d="M100 122L92 20h16z" transform="rotate(${i*36} 100 122)"/>`).join('');
+  return `<svg viewBox="0 0 200 200"><defs><radialGradient id="${id}" cx=".38" cy=".3" r=".8"><stop offset="0" stop-color="#fffbe0"/><stop offset=".45" stop-color="#ffd84d"/><stop offset="1" stop-color="#d99a00"/></radialGradient></defs>
+  <circle cx="100" cy="122" r="90" fill="#fff3a0" opacity=".55" class="glow"/><g class="rays" fill="#fff8c8" opacity=".55">${rays}</g>
+  <ellipse cx="100" cy="186" rx="44" ry="8" fill="#000" opacity=".12"/>
+  <g class="wob"><ellipse cx="100" cy="122" rx="50" ry="62" fill="url(#${id})" stroke="#e6a800" stroke-width="4"/>
+  <path d="M52 124l12-9 12 9 12-9 12 9 12-9 12 9 12-9 12 9" fill="none" stroke="#ff6f91" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M100 92l10 12-10 14-10-14z" fill="#ff9ec4" stroke="#fff" stroke-width="3"/>
+  <g fill="#fff" opacity=".9"><path d="M78 150c-4-6 4-10 6-4 2-6 10-2 6 4l-6 6z"/><path d="M114 156c-4-6 4-10 6-4 2-6 10-2 6 4l-6 6z"/></g>
+  <ellipse cx="80" cy="94" rx="10" ry="18" fill="#fff" opacity=".75"/>
+  ${p>=.4?'<path d="M70 132l12 8 8-10 10 9 9-8" fill="none" stroke="#a07000" stroke-width="3" stroke-linecap="round"/>':''}${p>=.8?'<path d="M112 136l10 7 10-6" fill="none" stroke="#a07000" stroke-width="3" stroke-linecap="round"/>':''}</g>
+  ${twinkles([[36,70,12],[166,84,10],[44,168,8],[160,160,11],[100,30,9]])}</svg>`}
+const PCOL={none:'#ffc2dc',plus:'#ff8fbd',minus:'#b99cff',times:'#ffc85c'};
+function princessSVG(st,happy,ck){
+  const h=PCOL[st===1?'none':ck],skin='#fff3f1',sc=[0,.72,.86,.96,1][st];
+  const eyes=happy?`<path d="M74 114q8-10 16 0M110 114q8-10 16 0" fill="none" stroke="#3b2a4a" stroke-width="5" stroke-linecap="round"/>`
+    :`<g class="eye"><ellipse cx="82" cy="112" rx="8.5" ry="11" fill="#3b2a4a"/><circle cx="85" cy="107" r="3.2" fill="#fff"/><circle cx="80" cy="116" r="1.6" fill="#fff"/></g><g class="eye"><ellipse cx="118" cy="112" rx="8.5" ry="11" fill="#3b2a4a"/><circle cx="121" cy="107" r="3.2" fill="#fff"/><circle cx="116" cy="116" r="1.6" fill="#fff"/></g><path d="M73 106l-6-4M74 102l-4-6M127 106l6-4M126 102l4-6" stroke="#3b2a4a" stroke-width="2.5" stroke-linecap="round"/>`;
+  const mouth=happy?'<path d="M91 128q9 12 18 0z" fill="#e2456f"/>':'<path d="M94 128q6 5 12 0" fill="none" stroke="#e2456f" stroke-width="3" stroke-linecap="round"/>';
+  let back='',front='';
+  if(st>=4)back+=`<path d="M50 120q-14 50 -6 64h112q8-14-6-64z" fill="#ff6f91"/><path d="M50 120q-6 40 0 64" stroke="#ffd23f" stroke-width="4" fill="none"/><path d="M150 120q6 40 0 64" stroke="#ffd23f" stroke-width="4" fill="none"/>`;
+  back+=st>=2?`<path d="M36 116q-6 40 6 62q10 8 18-4q-14-30-2-58zM164 116q6 40-6 62q-10 8-18-4q14-30 2-58z" fill="${h}"/><ellipse cx="100" cy="104" rx="70" ry="58" fill="${h}"/>`
+    :`<ellipse cx="100" cy="106" rx="68" ry="56" fill="${h}"/>`;
+  if(st>=3)back+=`<path d="M54 160q46 34 92 0l8 22H46z" fill="${h}"/><g fill="#fff">${[56,72,88,104,120,136].map(x=>`<circle cx="${x+4}" cy="${181}" r="6"/>`).join('')}</g>`;
+  front+=`<path d="M38 110q4-54 62-58q58 4 62 58q-12-12-24-4q-6-16-20-10q-8-14-18-8q-10-6-18 8q-14-6-20 10q-12-8-24 4z" fill="${h}"/><path d="M60 72q18-14 34-14" stroke="#fff" stroke-width="5" opacity=".5" fill="none" stroke-linecap="round"/>`;
+  if(st>=2)front+=['M30 122','M170 122'].map((m,i)=>{const x=i?170:30;return `<g transform="translate(${x} 122)"><path d="M0 0l-14-9v18zM0 0l14-9v18z" fill="#ff6f91"/><circle r="4.5" fill="#ffd23f"/></g>`}).join('');
+  if(st>=3)front+=`<g fill="#fff" stroke="#f3d7e2" stroke-width="1">${[78,89,100,111,122].map((x,i)=>`<circle cx="${x}" cy="${150+Math.abs(i-2)*-2+4}" r="4"/>`).join('')}</g><circle cx="100" cy="160" r="5" fill="#ff9ec4" stroke="#fff" stroke-width="2"/>`;
+  const crown=st>=4?`<path d="M70 62l6-30 12 18 12-26 12 26 12-18 6 30z" fill="#ffd23f" stroke="#e6a800" stroke-width="3" stroke-linejoin="round"/><circle cx="100" cy="46" r="6" fill="#ff6f91"/><circle cx="80" cy="54" r="3.5" fill="#4fc3b2"/><circle cx="120" cy="54" r="3.5" fill="#a9b8ff"/>`
+    :`<path d="M84 58l4-14 6 8 6-12 6 12 6-8 4 14z" fill="#ffd23f" stroke="#e6a800" stroke-width="2.5" stroke-linejoin="round"/><circle cx="100" cy="46" r="3.5" fill="#ff6f91"/>`;
+  return `<svg viewBox="0 0 200 200"><ellipse cx="100" cy="188" rx="${60*sc}" ry="9" fill="#000" opacity=".1"/>
+  <g transform="translate(100 182) scale(${sc}) translate(-100 -182)">
+  <circle cx="100" cy="118" r="${st>=4?94:84}" fill="#fff3a0" opacity="${st>=4?.6:.35}"/>${back}
+  <ellipse cx="74" cy="174" rx="15" ry="9" fill="${skin}" stroke="#f3d7e2" stroke-width="2"/><ellipse cx="126" cy="174" rx="15" ry="9" fill="${skin}" stroke="#f3d7e2" stroke-width="2"/>
+  <ellipse cx="100" cy="124" rx="60" ry="54" fill="${skin}" stroke="#f3d7e2" stroke-width="2"/>
+  ${eyes}<ellipse cx="66" cy="130" rx="10" ry="6" fill="#ff6f91" opacity=".45"/><ellipse cx="134" cy="130" rx="10" ry="6" fill="#ff6f91" opacity=".45"/>${mouth}${front}${crown}</g>
+  ${twinkles(st>=4?[[28,60,14],[172,52,12],[20,150,9],[180,140,10]]:[[30,70,9],[170,80,8]])}</svg>`;
+}
 function eggSVG(gen,p){const sp=gen%4,e=EGGS[sp];
   const pat=[`<circle cx="118" cy="100" r="9" fill="#ffc2d4"/><circle cx="84" cy="142" r="11" fill="#bfe6ff"/><circle cx="124" cy="150" r="6" fill="#ffe08a"/>`,
     `<path d="M52 128l12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10" fill="none" stroke="#ffd23f" stroke-width="7" stroke-linejoin="round"/><path d="M54 146l12-8 12 8 12-8 12 8 12-8 12 8 12-8 10 6" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>`,
@@ -217,7 +260,8 @@ function eggSVG(gen,p){const sp=gen%4,e=EGGS[sp];
     `<g fill="#ffd23f">${[[86,104,8],[122,120,10],[90,150,7],[118,160,5]].map(([x,y,r])=>`<path d="M${x} ${y-r}l${r*.3} ${r*.7} ${r*.7} ${r*.3}-${r*.7} ${r*.3}-${r*.3} ${r*.7}-${r*.3}-${r*.7}-${r*.7}-${r*.3} ${r*.7}-${r*.3}z"/>`).join('')}</g>`][sp];
   return `<svg viewBox="0 0 200 200" style="filter:hue-rotate(${Math.floor(gen/4)*70}deg)"><ellipse cx="100" cy="186" rx="44" ry="8" fill="#000" opacity=".1"/><g class="wob"><ellipse cx="100" cy="122" rx="50" ry="62" fill="${e.f}" stroke="${e.s}" stroke-width="4"/>${pat}<ellipse cx="82" cy="96" rx="10" ry="16" fill="#fff" opacity=".7"/>
     ${p>=.4?'<path d="M70 118l12 8 8-10 10 9 9-8" fill="none" stroke="#b9a48c" stroke-width="3" stroke-linecap="round"/>':''}${p>=.8?'<path d="M112 120l10 7 10-6" fill="none" stroke="#b9a48c" stroke-width="3" stroke-linecap="round"/>':''}</g></svg>`}
-function petSVG(gen,st,happy,ck,p=0){
+function petSVG(gen,st,happy,ck,p=0,rare=false){
+  if(rare)return st===0?goldEggSVG(p):princessSVG(st,happy,ck);
   if(st===0)return eggSVG(gen,p);
   const sp=gen%4,c=COLS[sp][st===1?'none':ck],sc=[0,.72,.86,.96,1][st],line=sp===2?'#f0dfe8':'none';
   const eyes=happy?`<path d="M74 112q8-10 16 0M110 112q8-10 16 0" fill="none" stroke="#3b2a4a" stroke-width="5" stroke-linecap="round"/>`
@@ -254,15 +298,15 @@ function petSVG(gen,st,happy,ck,p=0){
   ${eyes}<ellipse cx="66" cy="128" rx="10" ry="6" fill="#ff6f91" opacity=".45"/><ellipse cx="134" cy="128" rx="10" ry="6" fill="#ff6f91" opacity=".45"/>
   ${mouth}${front}${crown}</g></svg>`;
 }
-const curSVG=happy=>{const st=stageOf(S.total);return petSVG(S.gen,st,happy,dominant(),Math.min(1,S.total/5))};
+const curSVG=happy=>{const st=stageOf(S.total);return petSVG(S.gen,st,happy,dominant(),Math.min(1,S.total/5),!!S.rare)};
 
 /* ---- render ---- */
 const anyOv=()=>!!document.querySelector('.ov.show');
 function renderPet(happy){$('pet').innerHTML=curSVG(happy);$('pet').className=happy?'bounce':'idle'}
 function renderWish(){const w=$('wish');if(S.wish&&stageOf(S.total)>0){w.hidden=false;w.innerHTML=fruitSVG(S.wish)}else w.hidden=true}
-function renderFriends(){$('friends').innerHTML=S.album.slice(-4).map((a,i)=>`<button data-i="${S.album.length-Math.min(4,S.album.length)+i}" aria-label="なかま">${petSVG(a.gen,4,false,a.col)}</button>`).join('')}
+function renderFriends(){$('friends').innerHTML=S.album.slice(-4).map((a,i)=>`<button data-i="${S.album.length-Math.min(4,S.album.length)+i}" aria-label="なかま">${petSVG(a.gen,4,false,a.col,0,!!a.rare)}</button>`).join('')}
 function renderStatus(){
-  const st=stageOf(S.total);$('stageName').textContent=STAGES[st].n;$('petName').textContent=S.name;
+  const st=stageOf(S.total);$('stageName').textContent=(S.rare?'★':'')+STAGES[st].n;$('stageName').classList.toggle('gold',!!S.rare);$('petName').textContent=S.name;
   if(st<4){const a=STAGES[st].t,b=STAGES[st+1].t;$('growBar').style.width=Math.min(100,(S.total-a)/(b-a)*100)+'%';
     $('growTxt').textContent=(st===0?'うまれるまで':'しんかまで')+' あと '+(b-S.total)+'こ'}
   else{$('growBar').style.width='100%';$('growTxt').textContent='スターに なった！'}
@@ -341,17 +385,19 @@ function feed(k){
 }
 function evolve(st){
   $('evoPet').innerHTML=curSVG(true);$('evoPet').classList.remove('flash');void $('evoPet').offsetWidth;$('evoPet').classList.add('flash');
-  $('evoTitle').textContent=st===1?'うまれた！':'しんかした！';
-  $('evoTxt').textContent=st===1?SPECIES[S.gen%4]+'の あかちゃんが うまれたよ！':S.name+'は 「'+STAGES[st].n+'」に なったよ'+(st===2?'。たべた くだもので いろが かわるよ':st===4?'。さいこうの すがた！':'');
+  $('evoTitle').textContent=st===1?(S.rare?'レアが うまれた！':'うまれた！'):'しんかした！';
+  $('evoTxt').textContent=st===1?(S.rare?'キラキラの プリンセスが うまれたよ！':SPECIES[S.gen%4]+'の あかちゃんが うまれたよ！'):S.name+'は 「'+STAGES[st].n+'」に なったよ'+(st===2?'。たべた くだもので いろが かわるよ':st===4?'。さいこうの すがた！':'');
   $('evoOk').textContent=st===1?'なまえを つける':'やったね！';
   $('evoOv').classList.add('show');tone([523,659,784,1047,1319],.16,'triangle');renderPet(false);renderStatus();renderWish();
 }
 function thanks(){
-  $('thxStar').innerHTML=petSVG(S.gen,4,true,dominant());$('thxEgg').innerHTML=eggSVG(S.gen+1,0);
-  $('thxTxt').textContent=S.name+'から おれいの たまごを もらったよ。'+S.name+'は なかまに なって、そばで みまもってくれるよ。';
-  $('thxOv').classList.add('show');tone([784,988,1175,1568],.18,'triangle');
+  if(typeof S.nextRare!=='boolean'){S.nextRare=Math.random()<RARE_EGG;save()}
+  $('thxStar').innerHTML=petSVG(S.gen,4,true,dominant(),0,!!S.rare);$('thxEgg').innerHTML=S.nextRare?goldEggSVG(0):eggSVG(S.gen+1,0);
+  $('thxTxt').textContent=S.name+'から おれいの たまごを もらったよ。'+(S.nextRare?'……あれ？ キンキラの レアな たまご だ！ なにが うまれるかな？ ':'')+S.name+'は なかまに なって、そばで みまもってくれるよ。';
+  $('thxOv').classList.add('show');
+  if(S.nextRare){tone([1047,1319,1568,2093,2637],.14,'triangle');setTimeout(()=>pop('★ レアな たまご！ ★'),500)}else tone([784,988,1175,1568],.18,'triangle');
 }
-function layEgg(){S.album.push({name:S.name,gen:S.gen,col:dominant()});S.gen++;S.name=DEFNAME[S.gen%4];S.total=0;S.fed={plus:0,minus:0,times:0};S.wish=null;save();renderAll();say('…ころころ')}
+function layEgg(){S.album.push({name:S.name,gen:S.gen,col:dominant(),rare:!!S.rare});S.gen++;S.rare=!!S.nextRare;delete S.nextRare;S.name=S.rare?'ティアラ':DEFNAME[S.gen%4];S.total=0;S.fed={plus:0,minus:0,times:0};S.wish=null;save();renderAll();say('…ころころ')}
 function askName(){$('nameIn').value=S.name;$('nameOv').classList.add('show');setTimeout(()=>$('nameIn').focus(),50)}
 
 /* ---- events ---- */
