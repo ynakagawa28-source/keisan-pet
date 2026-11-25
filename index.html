@@ -2,7 +2,6 @@
 <html lang="ja">
 <head>
 <meta charset="utf-8">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>けいさんペット</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -142,6 +141,7 @@ button:focus-visible{outline:4px solid var(--mint);outline-offset:2px}
 <div class="ov" id="nameOv"><div class="panel"><h2>なまえを つけてね</h2><input id="nameIn" maxlength="8" autocomplete="off"><button class="btn" id="nameOk">きめた！</button></div></div>
 <div class="ov" id="resetOv"><div class="panel"><h2>はじめから やりなおす？</h2><p style="margin:0">ペットも くだものも きえて、たまごに もどります。</p><button class="btn" id="resetYes">やりなおす</button><button class="btn sub" id="resetNo">やめる</button></div></div>
 <div class="ov" id="bkOv"><div class="panel"><h2>バックアップ</h2><p style="margin:0;font-size:15px">この もじを コピーして メモなどに のこしてね。あたらしい ばんで ここに はりつけて「よみこむ」を おすと、つづきから あそべます。</p><textarea id="bkTxt" rows="4"></textarea><p id="bkMsg" style="margin:0;font-weight:700;color:var(--pink);min-height:1.5em"></p><button class="btn" id="bkCopy">コピーする</button><button class="btn sub" id="bkLoad">よみこむ</button><button class="link" id="bkClose">とじる</button></div></div>
+<div class="ov" id="rsOv"><div class="panel"><h2 id="rsTitle">データを よみこむ？</h2><p id="rsTxt" style="margin:0;font-weight:700"></p><button class="btn" id="rsYes">よみこむ</button><button class="btn sub" id="rsNo">やめる</button></div></div>
 <div class="ov" id="evoOv"><div class="panel evo"><div class="big" id="evoPet"></div><h2 id="evoTitle">しんかした！</h2><p id="evoTxt" style="margin:0;font-weight:700"></p><button class="btn" id="evoOk">やったね！</button></div></div>
 
 <script>
@@ -305,6 +305,12 @@ $('bkClose').onclick=()=>$('bkOv').classList.remove('show');
 $('bkCopy').onclick=async()=>{const t=$('bkTxt');t.value=enc();try{await navigator.clipboard.writeText(t.value);$('bkMsg').textContent='コピーしました'}catch(e){t.focus();t.select();$('bkMsg').textContent='もじを ながおしして コピーしてね'}};
 $('bkLoad').onclick=()=>{try{const raw=$('bkTxt').value.trim().replace(/^KP1:/,'');const v=JSON.parse(decodeURIComponent(escape(atob(raw))));if(!v||!v.bag||!v.fed)throw 0;
   S=Object.assign(blank(),v);if(S.day!==today){S.day=today;S.todayOk=0}streak=0;retry=[];save();renderAll();$('bkMsg').textContent=S.name+'の データを よみこみました！';say(LINES[stageOf(S.total)][0])}catch(e){$('bkMsg').textContent='よみこめませんでした。もじを ぜんぶ はりつけてね'}};
+const dec=c=>{const v=JSON.parse(decodeURIComponent(escape(atob(c.trim().replace(/^KP1:/,'')))));if(!v||!v.bag||!v.fed)throw 0;return v};
+let pend=null;
+try{const h=decodeURIComponent(location.hash);if(h.startsWith('#r=')){pend=dec(h.slice(3));history.replaceState(null,'',location.pathname);
+  $('rsTxt').textContent=pend.name+'（たべた かず '+pend.total+'こ）を よみこみます。いまの データは うわがきされます。';$('rsOv').classList.add('show')}}catch(e){}
+$('rsNo').onclick=()=>{pend=null;$('rsOv').classList.remove('show')};
+$('rsYes').onclick=()=>{if(pend){S=Object.assign(blank(),pend);if(S.day!==today){S.day=today;S.todayOk=0}S.saved=Date.now();streak=0;retry=[];save();renderAll();say(LINES[stageOf(S.total)][0])}pend=null;$('rsOv').classList.remove('show')};
 renderAll();
 }
 </script>
