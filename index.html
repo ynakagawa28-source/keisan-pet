@@ -102,6 +102,22 @@ button:focus-visible{outline:4px solid var(--mint);outline-offset:2px}
 .combo{position:fixed;left:50%;top:40%;transform:translate(-50%,-50%);font-size:44px;font-weight:900;color:var(--pink);-webkit-text-stroke:2px #fff;pointer-events:none;z-index:25;animation:pop 1.1s ease forwards}
 @keyframes pop{0%{transform:translate(-50%,-50%) scale(.3);opacity:0}25%{transform:translate(-50%,-50%) scale(1.15);opacity:1}80%{opacity:1}100%{transform:translate(-50%,-80%) scale(1);opacity:0}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.fruit{border:0;cursor:pointer;color:var(--ink)}
+.fruit.rare{background:linear-gradient(90deg,#fff6c2,#ffe0f0,#dff3ff);box-shadow:0 0 0 2px #ffd23f inset}
+.fruit[hidden]{display:none}
+.fruit:active{transform:scale(.94)}
+.wish{position:absolute;right:12%;top:18%;background:#fff;border-radius:50%;width:62px;height:62px;display:grid;place-items:center;box-shadow:0 3px 0 rgba(0,0,0,.06);animation:idle 2s ease-in-out infinite}
+.wish::before,.wish::after{content:"";position:absolute;background:#fff;border-radius:50%}
+.wish::before{width:14px;height:14px;left:2px;bottom:-6px}.wish::after{width:8px;height:8px;left:-8px;bottom:-14px}
+.wish svg{width:40px;height:40px}
+.wish[hidden]{display:none}
+.friends{position:absolute;left:8px;bottom:0;display:flex;gap:2px;align-items:flex-end}
+.friends button{background:none;padding:0;width:58px;height:58px}
+.friends svg{width:100%;height:100%;overflow:visible}
+.thx .pair{display:flex;justify-content:center;align-items:flex-end;gap:4px}
+.thx .pair div{width:min(190px,44vw);aspect-ratio:1}.thx .pair div+div{width:min(110px,26vw)}
+.thx svg{width:100%;height:100%;overflow:visible}
+.rule{font-size:13px;color:var(--soft);font-weight:700;margin:-4px 0 0}
 </style>
 </head>
 <body>
@@ -116,11 +132,14 @@ button:focus-visible{outline:4px solid var(--mint);outline-offset:2px}
     <div class="stage">
       <div class="bubble" id="bubble">…ごとごと</div>
       <div id="pet" role="button" aria-label="ペットをなでる"></div>
+      <div class="wish" id="wish" hidden></div>
+      <div class="friends" id="friends"></div>
     </div>
     <div class="roomBot">
       <div class="growth"><span id="growTxt">うまれるまで あと 5こ</span><div class="bar"><i id="growBar" style="width:0"></i></div></div>
       <div class="bag">
-        <span class="fruit" id="f-plus"></span><span class="fruit" id="f-minus"></span><span class="fruit" id="f-times"></span>
+        <button class="fruit" id="f-plus" data-f="plus"></button><button class="fruit" id="f-minus" data-f="minus"></button><button class="fruit" id="f-times" data-f="times"></button>
+        <button class="fruit rare" id="f-rainbow" data-f="rainbow" hidden></button><button class="fruit rare" id="f-gold" data-f="gold" hidden></button>
         <div class="feed"><button class="btn sub" id="feedAll">ぜんぶ</button><button class="btn" id="feedOne">ごはんをあげる</button></div>
       </div>
     </div>
@@ -129,6 +148,7 @@ button:focus-visible{outline:4px solid var(--mint);outline-offset:2px}
   <section class="quiz" aria-label="けいさんもんだい">
     <div class="chips" id="modes"></div>
     <div class="chips" id="ranges"></div>
+    <p class="rule">むずかしい もんだいほど くだものが たくさん もらえて、レアも でやすいよ</p>
     <div class="stats"><span>きょう せいかい <b id="today">0</b></span><span>れんぞく <b id="streak">0</b></span><span>5もん れんぞくで おまけ！</span></div>
     <div class="q" id="q" aria-live="polite"><span id="qa">3</span><span id="qop">+</span><span id="qb">4</span><span>=</span><span class="ans empty" id="ans">?</span></div>
     <div class="msg" id="msg"></div>
@@ -139,33 +159,41 @@ button:focus-visible{outline:4px solid var(--mint);outline-offset:2px}
 </div>
 
 <div class="ov" id="nameOv"><div class="panel"><h2>なまえを つけてね</h2><input id="nameIn" maxlength="8" autocomplete="off"><button class="btn" id="nameOk">きめた！</button></div></div>
-<div class="ov" id="resetOv"><div class="panel"><h2>はじめから やりなおす？</h2><p style="margin:0">ペットも くだものも きえて、たまごに もどります。</p><button class="btn" id="resetYes">やりなおす</button><button class="btn sub" id="resetNo">やめる</button></div></div>
+<div class="ov" id="resetOv"><div class="panel"><h2>はじめから やりなおす？</h2><p style="margin:0">ペットも なかまも くだものも きえて、さいしょの たまごに もどります。</p><button class="btn" id="resetYes">やりなおす</button><button class="btn sub" id="resetNo">やめる</button></div></div>
 <div class="ov" id="bkOv"><div class="panel"><h2>バックアップ</h2><p style="margin:0;font-size:15px">この もじを コピーして メモなどに のこしてね。あたらしい ばんで ここに はりつけて「よみこむ」を おすと、つづきから あそべます。</p><textarea id="bkTxt" rows="4"></textarea><p id="bkMsg" style="margin:0;font-weight:700;color:var(--pink);min-height:1.5em"></p><button class="btn" id="bkCopy">コピーする</button><button class="btn sub" id="bkLoad">よみこむ</button><button class="link" id="bkClose">とじる</button></div></div>
-<div class="ov" id="rsOv"><div class="panel"><h2 id="rsTitle">データを よみこむ？</h2><p id="rsTxt" style="margin:0;font-weight:700"></p><button class="btn" id="rsYes">よみこむ</button><button class="btn sub" id="rsNo">やめる</button></div></div>
+<div class="ov" id="rsOv"><div class="panel"><h2>データを よみこむ？</h2><p id="rsTxt" style="margin:0;font-weight:700"></p><button class="btn" id="rsYes">よみこむ</button><button class="btn sub" id="rsNo">やめる</button></div></div>
 <div class="ov" id="evoOv"><div class="panel evo"><div class="big" id="evoPet"></div><h2 id="evoTitle">しんかした！</h2><p id="evoTxt" style="margin:0;font-weight:700"></p><button class="btn" id="evoOk">やったね！</button></div></div>
+<div class="ov" id="thxOv"><div class="panel evo thx"><div class="pair"><div id="thxStar"></div><div id="thxEgg"></div></div><h2>たくさん たべさせてくれて ありがとう！</h2><p id="thxTxt" style="margin:0;font-weight:700"></p><button class="btn" id="thxOk">たまごを そだてる</button></div></div>
 
 <script>
 {
 const $=id=>document.getElementById(id);
 const STAGES=[{n:'たまご',t:0},{n:'ベビー',t:5},{n:'こども',t:20},{n:'おとな',t:50},{n:'スター',t:100}];
-const COL={plus:'#ff9ec4',minus:'#b7a0ff',times:'#ffbd66',none:'#ffe08a'};
-const FRUIT={plus:'いちご',minus:'ぶどう',times:'みかん'};
+const SPECIES=['もちもち','ことり','うさぎ','こねこ'];
+const DEFNAME=['モチ','ピヨ','ミミ','タマ'];
+const COLS=[
+  {none:'#ffe08a',plus:'#ff9ec4',minus:'#b7a0ff',times:'#ffbd66'},
+  {none:'#fff0a0',plus:'#ffc4d6',minus:'#a9b8ff',times:'#ffc978'},
+  {none:'#ffffff',plus:'#ffd6e4',minus:'#e2d4ff',times:'#ffe6bf'},
+  {none:'#f3dcbc',plus:'#f8b0c0',minus:'#a899e0',times:'#f6b26b'}];
+const EGGS=[{f:'#fffaf2',s:'#ecd9c3'},{f:'#d8f1ff',s:'#a9d4ee'},{f:'#ddf7ee',s:'#a8e0cc'},{f:'#eee5ff',s:'#c9b8f0'}];
+const NORMAL=['plus','minus','times'];
+const FRUIT={plus:'いちご',minus:'ぶどう',times:'みかん',rainbow:'にじいろキャンディ',gold:'きんのりんご'};
+const VALUE={rainbow:3,gold:5};
 const OPS={plus:'+',minus:'−',times:'×'};
-const MODES=[['plus','たしざん'],['minus','ひきざん'],['mix','まぜまぜ'],['times','かけざん']];
-const RANGES=[[10,'10まで'],[20,'20まで'],[100,'100まで']];
+const MODES=[['plus','たしざん'],['minus','ひきざん'],['mix','まぜまぜ'],['times','かけざん ×2']];
+const RANGES=[[10,'10まで'],[20,'20まで ×2'],[100,'100まで ×3']];
+const RARE={10:.03,20:.08,100:.12};
 const LINES=[['…ごとごと','なかで うごいた！','あったかい…'],['ぴぃ！','おなかすいた〜','あそぼ！'],['もっと たべたい！','けいさん すごいね！','なでて〜'],['いっしょに がんばろう！','きょうも えらい！','おいしかった！'],['キミは てんさい！','ずっと いっしょだよ','キラキラ〜！']];
+const WISHLINE={plus:'いちごが たべたいなぁ',minus:'たまには ぶどうも たべたいなぁ',times:'みかんって どんな あじかな？'};
 const today=new Date().toDateString();
-const blank=()=>({name:'モチ',bag:{plus:0,minus:0,times:0},fed:{plus:0,minus:0,times:0},total:0,mode:'plus',range:10,day:today,todayOk:0,sound:true,saved:0});
+const blank=()=>({name:'モチ',bag:{plus:0,minus:0,times:0,rainbow:0,gold:0},fed:{plus:0,minus:0,times:0},total:0,gen:0,album:[],wish:null,mode:'plus',range:10,day:today,todayOk:0,sound:true,saved:0});
+function norm(v){const b=blank(),o=Object.assign(b,v);o.bag=Object.assign(blank().bag,v.bag||{});o.fed=Object.assign(blank().fed,v.fed||{});
+  if(!Array.isArray(o.album))o.album=[];if(typeof o.gen!=='number')o.gen=0;if(o.day!==today){o.day=today;o.todayOk=0}return o}
 let S=blank();
-try{const v=JSON.parse(localStorage.getItem('keisanPet')||'null');if(v&&v.bag)S=Object.assign(blank(),v)}catch(e){}
-if(S.day!==today){S.day=today;S.todayOk=0}
+try{const v=JSON.parse(localStorage.getItem('keisanPet')||'null');if(v&&v.bag)S=norm(v)}catch(e){}
 let streak=0,cur=null,input='',miss=0,busy=false,retry=[],since=0;
-
-/* ---- save: localStorage + db ---- */
-let ref=null,saveT=null,writing=false;
-function save(){S.saved=Date.now();try{localStorage.setItem('keisanPet',JSON.stringify(S))}catch(e){}
-  clearTimeout(saveT);saveT=setTimeout(async()=>{},1200)}
-
+function save(){S.saved=Date.now();try{localStorage.setItem('keisanPet',JSON.stringify(S))}catch(e){}}
 
 /* ---- sound ---- */
 let ac=null;
@@ -176,64 +204,90 @@ function tone(fs,d=.12,type='sine'){if(!S.sound)return;try{ac=ac||new (window.Au
 function fruitSVG(k){
   if(k==='plus')return `<svg viewBox="0 0 40 40"><path d="M20 36C9 30 6 20 9 14c3-5 8-4 11-2 3-2 8-3 11 2 3 6 0 16-11 22z" fill="#ff4d6d"/><path d="M12 9l8 4 8-4-4 5h-8z" fill="#3fb36b"/><g fill="#ffe38a"><circle cx="15" cy="20" r="1.3"/><circle cx="22" cy="18" r="1.3"/><circle cx="26" cy="24" r="1.3"/><circle cx="18" cy="27" r="1.3"/></g></svg>`;
   if(k==='minus')return `<svg viewBox="0 0 40 40"><path d="M20 4v6" stroke="#6b4b2a" stroke-width="3"/><path d="M21 8c4-4 9-3 11 0-4 2-8 2-11 0z" fill="#3fb36b"/><g fill="#8e5cf0">${[[14,14],[26,14],[20,15],[11,22],[20,23],[29,22],[15,30],[25,30],[20,36]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="5.4"/>`).join('')}</g><circle cx="12" cy="20" r="1.6" fill="#fff" opacity=".6"/></svg>`;
-  return `<svg viewBox="0 0 40 40"><circle cx="20" cy="22" r="14" fill="#ff9f1c"/><circle cx="15" cy="17" r="4" fill="#fff" opacity=".35"/><path d="M20 9c2-5 8-6 11-4-3 4-7 5-11 4z" fill="#3fb36b"/></svg>`;
+  if(k==='times')return `<svg viewBox="0 0 40 40"><circle cx="20" cy="22" r="14" fill="#ff9f1c"/><circle cx="15" cy="17" r="4" fill="#fff" opacity=".35"/><path d="M20 9c2-5 8-6 11-4-3 4-7 5-11 4z" fill="#3fb36b"/></svg>`;
+  if(k==='rainbow')return `<svg viewBox="0 0 40 40"><path d="M9 20L2 13v14zM31 20l7-7v14z" fill="#ff9ec4"/><circle cx="20" cy="20" r="11" fill="#fff"/><path d="M20 9a11 11 0 0 1 11 11H9A11 11 0 0 1 20 9z" fill="#ff6f91"/><path d="M20 13a7 7 0 0 1 7 7H13a7 7 0 0 1 7-7z" fill="#ffd23f"/><path d="M20 16.5a3.5 3.5 0 0 1 3.5 3.5h-7a3.5 3.5 0 0 1 3.5-3.5z" fill="#4fc3b2"/><path d="M9 20a11 11 0 0 0 22 0z" fill="#a9b8ff"/><circle cx="15" cy="14" r="2" fill="#fff" opacity=".7"/></svg>`;
+  return `<svg viewBox="0 0 40 40"><path d="M20 10c-6-4-15 0-14 11 1 10 8 16 14 13 6 3 13-3 14-13 1-11-8-15-14-11z" fill="#ffc93c" stroke="#e6a800" stroke-width="2"/><path d="M20 10q-1-6 3-8" stroke="#6b4b2a" stroke-width="2.5" fill="none"/><path d="M22 7c4-3 9-2 10 1-4 2-7 2-10-1z" fill="#3fb36b"/><ellipse cx="13" cy="19" rx="3" ry="5" fill="#fff" opacity=".6"/><path d="M31 6l1 3 3 1-3 1-1 3-1-3-3-1 3-1z" fill="#fff"/></svg>`;
 }
-function dominant(){const f=S.fed;const m=Math.max(f.plus,f.minus,f.times);if(!m)return'none';return ['plus','minus','times'].find(k=>f[k]===m)}
+function dominant(f=S.fed){const m=Math.max(f.plus,f.minus,f.times);if(!m)return'none';return NORMAL.find(k=>f[k]===m)}
 function stageOf(t){let s=0;STAGES.forEach((x,i)=>{if(t>=x.t)s=i});return s}
-function petSVG(st,happy){
-  if(st===0){const p=Math.min(1,S.total/5);
-    return `<svg viewBox="0 0 200 200"><ellipse cx="100" cy="186" rx="44" ry="8" fill="#000" opacity=".1"/><g class="wob"><ellipse cx="100" cy="122" rx="50" ry="62" fill="#fffaf2" stroke="#ecd9c3" stroke-width="4"/><ellipse cx="82" cy="96" rx="12" ry="18" fill="#fff" opacity=".9"/>
-    <circle cx="118" cy="100" r="9" fill="#ffc2d4"/><circle cx="84" cy="142" r="11" fill="#bfe6ff"/><circle cx="124" cy="150" r="6" fill="#ffe08a"/>
-    ${p>=.4?'<path d="M70 118l12 8 8-10 10 9 9-8" fill="none" stroke="#c9b39a" stroke-width="3" stroke-linecap="round"/>':''}${p>=.8?'<path d="M112 120l10 7 10-6" fill="none" stroke="#c9b39a" stroke-width="3" stroke-linecap="round"/>':''}</g></svg>`}
-  const c=st===1?COL.none:COL[dominant()],sc=[0,.72,.86,.96,1][st];
+function eggSVG(gen,p){const sp=gen%4,e=EGGS[sp];
+  const pat=[`<circle cx="118" cy="100" r="9" fill="#ffc2d4"/><circle cx="84" cy="142" r="11" fill="#bfe6ff"/><circle cx="124" cy="150" r="6" fill="#ffe08a"/>`,
+    `<path d="M52 128l12-10 12 10 12-10 12 10 12-10 12 10 12-10 12 10" fill="none" stroke="#ffd23f" stroke-width="7" stroke-linejoin="round"/><path d="M54 146l12-8 12 8 12-8 12 8 12-8 12 8 12-8 10 6" fill="none" stroke="#fff" stroke-width="5" stroke-linejoin="round"/>`,
+    `<g fill="#fff">${[[80,100],[116,92],[100,124],[70,140],[128,136],[96,160],[120,164]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="7"/>`).join('')}</g><circle cx="100" cy="124" r="4" fill="#ff9ec4"/>`,
+    `<g fill="#ffd23f">${[[86,104,8],[122,120,10],[90,150,7],[118,160,5]].map(([x,y,r])=>`<path d="M${x} ${y-r}l${r*.3} ${r*.7} ${r*.7} ${r*.3}-${r*.7} ${r*.3}-${r*.3} ${r*.7}-${r*.3}-${r*.7}-${r*.7}-${r*.3} ${r*.7}-${r*.3}z"/>`).join('')}</g>`][sp];
+  return `<svg viewBox="0 0 200 200" style="filter:hue-rotate(${Math.floor(gen/4)*70}deg)"><ellipse cx="100" cy="186" rx="44" ry="8" fill="#000" opacity=".1"/><g class="wob"><ellipse cx="100" cy="122" rx="50" ry="62" fill="${e.f}" stroke="${e.s}" stroke-width="4"/>${pat}<ellipse cx="82" cy="96" rx="10" ry="16" fill="#fff" opacity=".7"/>
+    ${p>=.4?'<path d="M70 118l12 8 8-10 10 9 9-8" fill="none" stroke="#b9a48c" stroke-width="3" stroke-linecap="round"/>':''}${p>=.8?'<path d="M112 120l10 7 10-6" fill="none" stroke="#b9a48c" stroke-width="3" stroke-linecap="round"/>':''}</g></svg>`}
+function petSVG(gen,st,happy,ck,p=0){
+  if(st===0)return eggSVG(gen,p);
+  const sp=gen%4,c=COLS[sp][st===1?'none':ck],sc=[0,.72,.86,.96,1][st],line=sp===2?'#f0dfe8':'none';
   const eyes=happy?`<path d="M74 112q8-10 16 0M110 112q8-10 16 0" fill="none" stroke="#3b2a4a" stroke-width="5" stroke-linecap="round"/>`
     :`<g class="eye"><ellipse cx="82" cy="110" rx="8" ry="10" fill="#3b2a4a"/><circle cx="85" cy="106" r="3" fill="#fff"/></g><g class="eye"><ellipse cx="118" cy="110" rx="8" ry="10" fill="#3b2a4a"/><circle cx="121" cy="106" r="3" fill="#fff"/></g>`;
-  return `<svg viewBox="0 0 200 200"><ellipse cx="100" cy="186" rx="${60*sc}" ry="9" fill="#000" opacity=".1"/>
+  let back='',front='',mouth=happy?'<path d="M90 126q10 14 20 0z" fill="#e2456f"/>':'<path d="M92 126q4 5 8 0q4 5 8 0" fill="none" stroke="#3b2a4a" stroke-width="3" stroke-linecap="round"/>';
+  if(sp===0){
+    if(st>=2)back+=`<path d="M152 150c26 0 30-30 14-36-10-4-14 8-6 12" fill="none" stroke="${c}" stroke-width="12" stroke-linecap="round"/>`;
+    if(st>=3)back+=`<ellipse cx="40" cy="108" rx="28" ry="16" fill="#fff" stroke="#f3e3f0" stroke-width="3" transform="rotate(-30 40 108)"/><ellipse cx="160" cy="108" rx="28" ry="16" fill="#fff" stroke="#f3e3f0" stroke-width="3" transform="rotate(30 160 108)"/>`;
+    if(st>=2)back+=`<path d="M52 86L50 44q2-6 8-2L84 70z" fill="${c}"/><path d="M148 86L150 44q-2-6-8-2L116 70z" fill="${c}"/><path d="M58 76l-1-22 14 13z" fill="#fff" opacity=".55"/><path d="M142 76l1-22-14 13z" fill="#fff" opacity=".55"/>`;
+    if(st===1)back+=`<path d="M100 66q-4-20 10-22" fill="none" stroke="${c}" stroke-width="8" stroke-linecap="round"/>`;
+  }else if(sp===1){
+    const n=st>=3?3:1;for(let i=0;i<n;i++){const a=(i-(n-1)/2)*22;back+=`<ellipse cx="100" cy="56" rx="7" ry="${st>=3?20:14}" fill="${c}" transform="rotate(${a} 100 72)"/>`}
+    if(st>=2){back+=`<g fill="${c}"><ellipse cx="160" cy="152" rx="20" ry="8" transform="rotate(-20 160 152)"/><ellipse cx="158" cy="162" rx="18" ry="7" transform="rotate(5 158 162)"/></g>`;
+      const w=st>=3?30:20;front+=`<ellipse cx="${46+ (st>=3?-4:0)}" cy="132" rx="${w}" ry="14" fill="${c}" stroke="#fff" stroke-width="3" transform="rotate(30 46 132)"/><ellipse cx="${154+(st>=3?4:0)}" cy="132" rx="${w}" ry="14" fill="${c}" stroke="#fff" stroke-width="3" transform="rotate(-30 154 132)"/>`}
+    mouth=happy?'<path d="M90 122l10-6 10 6-10 10z" fill="#ff9f1c"/><path d="M90 122h20l-10 10z" fill="#e57d00"/>':'<path d="M91 121l9-5 9 5-9 8z" fill="#ff9f1c"/>';
+  }else if(sp===2){
+    const L=st>=2;back+=`<g fill="${c}" stroke="${line}" stroke-width="3"><ellipse cx="80" cy="${L?44:62}" rx="${L?15:11}" ry="${L?36:18}" transform="rotate(-10 80 80)"/><ellipse cx="120" cy="${L?44:62}" rx="${L?15:11}" ry="${L?36:18}" transform="rotate(10 120 80)"/></g>`;
+    if(L)back+=`<g fill="#ffb3c7"><ellipse cx="80" cy="46" rx="7" ry="25" transform="rotate(-10 80 80)"/><ellipse cx="120" cy="46" rx="7" ry="25" transform="rotate(10 120 80)"/></g><circle cx="160" cy="156" r="14" fill="#fff" stroke="#f0dfe8" stroke-width="3"/>`;
+    if(st>=3)front+=`<g transform="translate(126 26) rotate(15)"><path d="M0 0l-16-10v20zM0 0l16-10v20z" fill="#ff6f91"/><circle r="5" fill="#e2456f"/></g>`;
+    front+=`<path d="M96 119h8l-4 4z" fill="#ff8fab"/>`;
+  }else{
+    const big=st>=2;back+=`<path d="M56 ${big?92:84}L${big?52:60} ${big?40:56}L${big?92:84} 72z" fill="${c}"/><path d="M144 ${big?92:84}L${big?148:140} ${big?40:56}L${big?108:116} 72z" fill="${c}"/>`;
+    if(big)back+=`<path d="M62 80l-2-28 20 18z" fill="#ffb3c7"/><path d="M138 80l2-28-20 18z" fill="#ffb3c7"/><path d="M150 156c30-4 34-44 16-48" fill="none" stroke="${c}" stroke-width="13" stroke-linecap="round"/><path d="M164 132l12-4M162 120l12 0" stroke="#fff" stroke-width="4" opacity=".6" stroke-linecap="round"/>`;
+    if(big)front+=`<g stroke="#3b2a4a" stroke-width="2.5" stroke-linecap="round" opacity=".55"><path d="M56 122l-22-4M56 130l-22 4M144 122l22-4M144 130l22 4"/></g>`;
+    if(st>=3)front+=`<path d="M64 156q36 16 72 0" fill="none" stroke="#ff6f91" stroke-width="8" stroke-linecap="round"/><circle cx="100" cy="166" r="8" fill="#ffd23f" stroke="#e6a800" stroke-width="2"/><path d="M96 168h8" stroke="#a07000" stroke-width="2"/>`;
+  }
+  const crown=st>=4?`<path d="M74 ${sp===2?78:70}l6-26 12 16 8-22 8 22 12-16 6 26z" fill="#ffd23f" stroke="#e6a800" stroke-width="3" stroke-linejoin="round"/><circle cx="100" cy="${sp===2?66:58}" r="5" fill="#ff6f91"/><g fill="#ffd23f"><path d="M30 60l4 10 10 4-10 4-4 10-4-10-10-4 10-4z"/><path d="M168 46l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></g>`:'';
+  return `<svg viewBox="0 0 200 200" style="filter:hue-rotate(${Math.floor(gen/4)*70}deg)"><ellipse cx="100" cy="186" rx="${60*sc}" ry="9" fill="#000" opacity=".1"/>
   <g transform="translate(100 180) scale(${sc}) translate(-100 -180)">
-  ${st>=4?`<circle cx="100" cy="118" r="92" fill="#fff6b0" opacity=".55"/>`:''}
-  ${st>=2?`<path d="M152 150c26 0 30-30 14-36-10-4-14 8-6 12" fill="none" stroke="${c}" stroke-width="12" stroke-linecap="round"/>`:''}
-  ${st>=3?`<ellipse cx="40" cy="108" rx="28" ry="16" fill="#fff" stroke="#f3e3f0" stroke-width="3" transform="rotate(-30 40 108)"/><ellipse cx="160" cy="108" rx="28" ry="16" fill="#fff" stroke="#f3e3f0" stroke-width="3" transform="rotate(30 160 108)"/>`:''}
-  ${st>=2?`<path d="M52 86L50 44q2-6 8-2L84 70z" fill="${c}"/><path d="M148 86L150 44q-2-6-8-2L116 70z" fill="${c}"/><path d="M58 76l-1-22 14 13z" fill="#fff" opacity=".55"/><path d="M142 76l1-22-14 13z" fill="#fff" opacity=".55"/>`:''}
-  ${st===1?`<path d="M100 66q-4-20 10-22" fill="none" stroke="${c}" stroke-width="8" stroke-linecap="round"/>`:''}
-  <ellipse cx="72" cy="172" rx="16" ry="10" fill="${c}"/><ellipse cx="128" cy="172" rx="16" ry="10" fill="${c}"/>
-  <ellipse cx="100" cy="122" rx="64" ry="56" fill="${c}"/><ellipse cx="100" cy="140" rx="40" ry="30" fill="#fff" opacity=".45"/>
+  ${st>=4?`<circle cx="100" cy="118" r="92" fill="#fff6b0" opacity=".55"/>`:''}${back}
+  <ellipse cx="72" cy="172" rx="16" ry="10" fill="${c}" stroke="${line}" stroke-width="3"/><ellipse cx="128" cy="172" rx="16" ry="10" fill="${c}" stroke="${line}" stroke-width="3"/>
+  <ellipse cx="100" cy="122" rx="64" ry="56" fill="${c}" stroke="${line}" stroke-width="3"/><ellipse cx="100" cy="140" rx="40" ry="30" fill="#fff" opacity=".45"/>
   <ellipse cx="72" cy="88" rx="18" ry="10" fill="#fff" opacity=".5" transform="rotate(-25 72 88)"/>
   ${eyes}<ellipse cx="66" cy="128" rx="10" ry="6" fill="#ff6f91" opacity=".45"/><ellipse cx="134" cy="128" rx="10" ry="6" fill="#ff6f91" opacity=".45"/>
-  ${happy?'<path d="M90 126q10 14 20 0z" fill="#e2456f"/>':'<path d="M92 126q4 5 8 0q4 5 8 0" fill="none" stroke="#3b2a4a" stroke-width="3" stroke-linecap="round"/>'}
-  ${st>=4?`<path d="M74 70l6-26 12 16 8-22 8 22 12-16 6 26z" fill="#ffd23f" stroke="#e6a800" stroke-width="3" stroke-linejoin="round"/><circle cx="100" cy="58" r="5" fill="#ff6f91"/>
-   <g fill="#ffd23f"><path d="M30 60l4 10 10 4-10 4-4 10-4-10-10-4 10-4z"/><path d="M168 46l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></g>`:''}
-  </g></svg>`;
+  ${mouth}${front}${crown}</g></svg>`;
 }
+const curSVG=happy=>{const st=stageOf(S.total);return petSVG(S.gen,st,happy,dominant(),Math.min(1,S.total/5))};
 
 /* ---- render ---- */
-function renderPet(happy){const st=stageOf(S.total);$('pet').innerHTML=petSVG(st,happy);$('pet').className=happy?'bounce':'idle'}
+const anyOv=()=>!!document.querySelector('.ov.show');
+function renderPet(happy){$('pet').innerHTML=curSVG(happy);$('pet').className=happy?'bounce':'idle'}
+function renderWish(){const w=$('wish');if(S.wish&&stageOf(S.total)>0){w.hidden=false;w.innerHTML=fruitSVG(S.wish)}else w.hidden=true}
+function renderFriends(){$('friends').innerHTML=S.album.slice(-4).map((a,i)=>`<button data-i="${S.album.length-Math.min(4,S.album.length)+i}" aria-label="なかま">${petSVG(a.gen,4,false,a.col)}</button>`).join('')}
 function renderStatus(){
   const st=stageOf(S.total);$('stageName').textContent=STAGES[st].n;$('petName').textContent=S.name;
-  if(st<4){const a=STAGES[st].t,b=STAGES[st+1].t;$('growBar').style.width=((S.total-a)/(b-a)*100)+'%';
+  if(st<4){const a=STAGES[st].t,b=STAGES[st+1].t;$('growBar').style.width=Math.min(100,(S.total-a)/(b-a)*100)+'%';
     $('growTxt').textContent=(st===0?'うまれるまで':'しんかまで')+' あと '+(b-S.total)+'こ'}
-  else{$('growBar').style.width='100%';$('growTxt').textContent='さいごまで そだった！ たべた かず '+S.total}
-  ['plus','minus','times'].forEach(k=>{$('f-'+k).innerHTML=fruitSVG(k)+'<span>'+S.bag[k]+'</span>';$('f-'+k).setAttribute('aria-label',FRUIT[k]+' '+S.bag[k]+'こ')});
-  const n=S.bag.plus+S.bag.minus+S.bag.times;$('feedOne').disabled=!n;$('feedAll').disabled=n<2;
+  else{$('growBar').style.width='100%';$('growTxt').textContent='スターに なった！'}
+  ['plus','minus','times','rainbow','gold'].forEach(k=>{const el=$('f-'+k);el.innerHTML=fruitSVG(k)+'<span>'+S.bag[k]+'</span>';el.setAttribute('aria-label',FRUIT[k]+'を あげる（'+S.bag[k]+'こ）');
+    if(k==='rainbow'||k==='gold')el.hidden=!S.bag[k];el.disabled=!S.bag[k]});
+  const n=Object.values(S.bag).reduce((a,b)=>a+b,0);$('feedOne').disabled=!n;$('feedAll').disabled=n<2;
   $('today').textContent=S.todayOk;$('streak').textContent=streak;$('soundBtn').textContent='おと '+(S.sound?'ON':'OFF');
 }
 function renderChips(){
   $('modes').innerHTML=MODES.map(([k,l])=>`<button class="chip" data-m="${k}" aria-pressed="${S.mode===k}">${l}</button>`).join('');
   $('ranges').innerHTML=RANGES.map(([r,l])=>`<button class="chip" data-r="${r}" aria-pressed="${S.range===r&&S.mode!=='times'}" ${S.mode==='times'?'disabled':''}>${l}</button>`).join('');
 }
-function renderAll(){renderChips();renderStatus();renderPet(false);newQ()}
+function renderAll(){renderChips();renderStatus();renderPet(false);renderWish();renderFriends();newQ()}
 
 /* ---- problems ---- */
 const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+function setQ(q){cur=q;input='';miss=0;$('qa').textContent=q.a;$('qb').textContent=q.b;$('qop').textContent=OPS[q.op];showAns();$('hint').innerHTML=''}
 function newQ(){
   since++;
-  if(retry.length&&since>=3){cur=retry.shift();since=0;input='';miss=0;
-    $('qa').textContent=cur.a;$('qb').textContent=cur.b;$('qop').textContent=OPS[cur.op];showAns();$('msg').textContent='もういちど チャレンジ！';$('msg').className='msg ng';$('hint').innerHTML='';return}
+  if(retry.length&&since>=3){since=0;setQ(retry.shift());$('msg').textContent='もういちど チャレンジ！';$('msg').className='msg ng';return}
   let op=S.mode==='mix'?(Math.random()<.5?'plus':'minus'):S.mode,a,b,ans,R=S.range,tries=0;
   do{if(op==='plus'){a=rnd(1,R-1);b=rnd(1,R-a);ans=a+b}
     else if(op==='minus'){a=rnd(2,R);b=rnd(1,a-1);ans=a-b}
     else{a=rnd(1,9);b=rnd(1,9);ans=a*b}}while(cur&&cur.a===a&&cur.b===b&&++tries<10);
-  cur={op,a,b,ans};input='';miss=0;
-  $('qa').textContent=a;$('qb').textContent=b;$('qop').textContent=OPS[op];showAns();$('msg').textContent='';$('msg').className='msg';$('hint').innerHTML='';
+  setQ({op,a,b,ans,R:op==='times'?0:R});$('msg').textContent='';$('msg').className='msg';
 }
 function showAns(){$('ans').textContent=input||'?';$('ans').classList.toggle('empty',!input)}
 function showHint(){const{op,a,b}=cur;let h='';
@@ -242,14 +296,22 @@ function showHint(){const{op,a,b}=cur;let h='';
   else if(op==='minus'&&a<=20)h='<i class="dot"></i>'.repeat(a-b)+'<i class="dot x"></i>'.repeat(b);
   else h='<span style="font-weight:700;color:var(--soft)">'+(op==='plus'?'じゅうのくらいと いちのくらいに わけて たしてみよう':'じゅうのくらいから かりてくると いいよ')+'</span>';
   $('hint').innerHTML=h}
+function maybeWish(){
+  if(S.wish||stageOf(S.total)===0)return;const f=S.fed,sum=f.plus+f.minus+f.times;if(sum<6)return;
+  const cand=['plus','minus'].concat(f.times||S.bag.times?['times']:[]);const least=cand.reduce((x,y)=>f[y]<f[x]?y:x);
+  if(f[least]/sum<.2&&Math.random()<.3){S.wish=least;renderWish();say(WISHLINE[least]);save()}
+}
 function check(){
   if(!input||busy)return;
   if(+input===cur.ans){
-    busy=true;streak++;S.todayOk++;S.bag[cur.op]++;let bonus=streak%5===0;if(bonus)S.bag[cur.op]++;
-    $('msg').textContent=['せいかい！','すごい！','ばっちり！','やったね！'][rnd(0,3)]+' '+FRUIT[cur.op]+(bonus?'を 2こ ゲット！':'を ゲット！');$('msg').className='msg ok';
+    busy=true;streak++;S.todayOk++;const R=cur.R,mult=cur.op==='times'?2:R===100?3:R===20?2:1;let n=mult,bonus=streak%5===0;if(bonus)n++;S.bag[cur.op]+=n;
+    let rare=null;if(Math.random()<(cur.op==='times'?.08:RARE[R]||.03)){rare=Math.random()<.3?'gold':'rainbow';S.bag[rare]++}
+    $('msg').textContent=['せいかい！','すごい！','ばっちり！','やったね！'][rnd(0,3)]+' '+FRUIT[cur.op]+'を '+n+'こ ゲット！';$('msg').className='msg ok';
     tone([660,880,1320]);if(bonus){pop(streak+'れんぞく！');tone([523,659,784,1047],.1,'triangle')}
-    say(['ありがとう！','がんばれ〜！','いいね！'][rnd(0,2)]);renderStatus();save();
-    setTimeout(()=>{busy=false;newQ()},bonus?1100:800);
+    if(rare)setTimeout(()=>{pop('レア！ '+FRUIT[rare]);tone([880,1175,1568,2093],.12,'triangle')},bonus?700:0);
+    if(cur.op===S.wish)say('あっ、'+FRUIT[cur.op]+'だ！ ちょうだい！');else{say(['ありがとう！','がんばれ〜！','いいね！'][rnd(0,2)]);maybeWish()}
+    renderStatus();save();
+    setTimeout(()=>{busy=false;newQ()},rare||bonus?1300:800);
   }else{
     miss++;streak=0;if(miss===1&&!retry.some(r=>r.a===cur.a&&r.b===cur.b&&r.op===cur.op))retry.push({...cur});renderStatus();tone([300,240],.15,'triangle');
     const q=$('q');q.classList.remove('shake');void q.offsetWidth;q.classList.add('shake');
@@ -261,57 +323,76 @@ function check(){
 /* ---- feeding ---- */
 function say(t){$('bubble').textContent=t}
 function pop(t){const d=document.createElement('div');d.className='combo';d.textContent=t;document.body.appendChild(d);setTimeout(()=>d.remove(),1200)}
-function hearts(){const st=document.querySelector('.stage');for(let i=0;i<3;i++){const h=document.createElement('span');h.className='heart';h.textContent='♥';h.style.left=(40+rnd(-14,14))+'%';h.style.top=(35+rnd(-8,8))+'%';h.style.animationDelay=i*.12+'s';st.appendChild(h);setTimeout(()=>h.remove(),1500)}}
-function feed(){
-  const k=['plus','minus','times'].filter(k=>S.bag[k]>0).sort((x,y)=>S.bag[y]-S.bag[x])[0];if(!k)return false;
-  const before=stageOf(S.total);S.bag[k]--;S.fed[k]++;S.total++;
+function hearts(n=3){const st=document.querySelector('.stage');for(let i=0;i<n;i++){const h=document.createElement('span');h.className='heart';h.textContent='♥';h.style.left=(40+rnd(-16,16))+'%';h.style.top=(35+rnd(-8,8))+'%';h.style.animationDelay=i*.12+'s';st.appendChild(h);setTimeout(()=>h.remove(),1600)}}
+function pick(){if(S.wish&&S.bag[S.wish]>0)return S.wish;const k=NORMAL.filter(k=>S.bag[k]>0).sort((x,y)=>S.bag[y]-S.bag[x])[0];return k||(S.bag.rainbow?'rainbow':S.bag.gold?'gold':null)}
+function feed(k){
+  if(anyOv()||stageOf(S.total)>=4)return false;k=k||pick();if(!k||S.bag[k]<=0)return false;
+  const before=stageOf(S.total),wished=k===S.wish,v=VALUE[k]||(wished?2:1);
+  S.bag[k]--;if(NORMAL.includes(k))S.fed[k]++;S.total+=v;if(wished)S.wish=null;
   const from=$('f-'+k).getBoundingClientRect(),to=$('pet').getBoundingClientRect(),f=document.createElement('div');
   f.className='fly';f.innerHTML=fruitSVG(k);f.style.left=from.left+'px';f.style.top=from.top+'px';document.body.appendChild(f);
   const dx=to.left+to.width/2-20-from.left,dy=to.top+to.height*.55-20-from.top;
   try{f.animate([{transform:'translate(0,0) scale(1)'},{transform:`translate(${dx/2}px,${dy-80}px) scale(1.3)`},{transform:`translate(${dx}px,${dy}px) scale(.4)`,opacity:.6}],{duration:550,easing:'ease-in'})}catch(e){}
-  setTimeout(()=>{f.remove();renderPet(true);hearts();tone([520,780],.09);say(['もぐもぐ…','おいしい！','しあわせ〜'][rnd(0,2)]);renderStatus();save();
+  setTimeout(()=>{f.remove();renderPet(true);hearts(v>1?6:3);tone(v>1?[660,880,1175]:[520,780],.09);
+    say(wished?'これ たべたかったの！ ありがとう！':VALUE[k]?'キラキラの あじ〜！':['もぐもぐ…','おいしい！','しあわせ〜'][rnd(0,2)]);
+    renderStatus();renderWish();if(!wished)maybeWish();save();
     const after=stageOf(S.total);if(after>before)setTimeout(()=>evolve(after),500);else setTimeout(()=>renderPet(false),900)},540);
   renderStatus();return true;
 }
 function evolve(st){
-  $('evoPet').innerHTML=petSVG(st,true);$('evoPet').classList.remove('flash');void $('evoPet').offsetWidth;$('evoPet').classList.add('flash');
+  $('evoPet').innerHTML=curSVG(true);$('evoPet').classList.remove('flash');void $('evoPet').offsetWidth;$('evoPet').classList.add('flash');
   $('evoTitle').textContent=st===1?'うまれた！':'しんかした！';
-  $('evoTxt').textContent=S.name+'は 「'+STAGES[st].n+'」に なったよ'+(st===2?'。たべた くだもので いろが かわるよ':st===4?'。さいこうの すがた！':'');
-  $('evoOv').classList.add('show');tone([523,659,784,1047,1319],.16,'triangle');renderPet(false);renderStatus();
+  $('evoTxt').textContent=st===1?SPECIES[S.gen%4]+'の あかちゃんが うまれたよ！':S.name+'は 「'+STAGES[st].n+'」に なったよ'+(st===2?'。たべた くだもので いろが かわるよ':st===4?'。さいこうの すがた！':'');
+  $('evoOk').textContent=st===1?'なまえを つける':'やったね！';
+  $('evoOv').classList.add('show');tone([523,659,784,1047,1319],.16,'triangle');renderPet(false);renderStatus();renderWish();
 }
+function thanks(){
+  $('thxStar').innerHTML=petSVG(S.gen,4,true,dominant());$('thxEgg').innerHTML=eggSVG(S.gen+1,0);
+  $('thxTxt').textContent=S.name+'から おれいの たまごを もらったよ。'+S.name+'は なかまに なって、そばで みまもってくれるよ。';
+  $('thxOv').classList.add('show');tone([784,988,1175,1568],.18,'triangle');
+}
+function layEgg(){S.album.push({name:S.name,gen:S.gen,col:dominant()});S.gen++;S.name=DEFNAME[S.gen%4];S.total=0;S.fed={plus:0,minus:0,times:0};S.wish=null;save();renderAll();say('…ころころ')}
+function askName(){$('nameIn').value=S.name;$('nameOv').classList.add('show');setTimeout(()=>$('nameIn').focus(),50)}
 
 /* ---- events ---- */
 $('pad').innerHTML=['7','8','9','4','5','6','1','2','3','del','0','ok'].map(k=>`<button class="key ${k==='ok'?'ok':k==='del'?'del':''}" data-k="${k}">${k==='ok'?'こたえる':k==='del'?'けす':k}</button>`).join('');
 function key(k){if(busy)return;if(k==='ok')return check();if(k==='del')input=input.slice(0,-1);else if(input.length<3)input=(input==='0'?'':input)+k;showAns();tone([440+(+k||0)*30],.05)}
 $('pad').addEventListener('click',e=>{const b=e.target.closest('[data-k]');if(b)key(b.dataset.k)});
-document.addEventListener('keydown',e=>{if(document.querySelector('.ov.show'))return;if(/^[0-9]$/.test(e.key))key(e.key);else if(e.key==='Backspace')key('del');else if(e.key==='Enter')key('ok')});
+document.addEventListener('keydown',e=>{if(anyOv())return;if(/^[0-9]$/.test(e.key))key(e.key);else if(e.key==='Backspace')key('del');else if(e.key==='Enter')key('ok')});
 $('modes').addEventListener('click',e=>{const b=e.target.closest('[data-m]');if(!b)return;S.mode=b.dataset.m;streak=0;retry=[];save();renderChips();renderStatus();newQ()});
 $('ranges').addEventListener('click',e=>{const b=e.target.closest('[data-r]');if(!b)return;S.range=+b.dataset.r;streak=0;retry=[];save();renderChips();renderStatus();newQ()});
+document.querySelector('.bag').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b)feed(b.dataset.f)});
+$('friends').addEventListener('click',e=>{const b=e.target.closest('[data-i]');if(!b)return;const a=S.album[+b.dataset.i];if(a){say(a.name+'「がんばってね！」');tone([900,1200],.06)}});
 $('hintBtn').onclick=showHint;
-$('feedOne').onclick=feed;
-$('feedAll').onclick=()=>{let i=0;const go=()=>{if($('evoOv').classList.contains('show'))return;if(feed()&&++i<30)setTimeout(go,380)};go()};
-$('pet').onclick=()=>{const st=stageOf(S.total);renderPet(st>0);if(st>0)hearts();tone([700,900],.07);say(LINES[st][rnd(0,2)]);setTimeout(()=>renderPet(false),900)};
+$('feedOne').onclick=()=>feed();
+$('feedAll').onclick=()=>{let i=0;const go=()=>{if(feed()&&++i<40)setTimeout(go,380)};go()};
+$('pet').onclick=()=>{const st=stageOf(S.total);renderPet(st>0);if(st>0)hearts();tone([700,900],.07);say(S.wish&&Math.random()<.6?WISHLINE[S.wish]:LINES[st][rnd(0,2)]);setTimeout(()=>renderPet(false),900)};
 $('soundBtn').onclick=()=>{S.sound=!S.sound;save();renderStatus()};
-$('nameBtn').onclick=()=>{$('nameIn').value=S.name;$('nameOv').classList.add('show');setTimeout(()=>$('nameIn').focus(),50)};
-$('nameOk').onclick=()=>{const v=$('nameIn').value.trim();if(v)S.name=v;$('nameOv').classList.remove('show');save();renderStatus()};
+$('nameBtn').onclick=askName;
+$('nameOk').onclick=()=>{const v=$('nameIn').value.trim();if(v)S.name=v;$('nameOv').classList.remove('show');save();renderStatus();say('よろしくね！')};
 $('nameIn').addEventListener('keydown',e=>{if(e.key==='Enter')$('nameOk').click()});
 $('resetBtn').onclick=()=>$('resetOv').classList.add('show');
 $('resetNo').onclick=()=>$('resetOv').classList.remove('show');
-$('resetYes').onclick=()=>{const keep={mode:S.mode,range:S.range,sound:S.sound};S=Object.assign(blank(),keep);streak=0;save();$('resetOv').classList.remove('show');renderAll();say('…ごとごと')};
-$('evoOk').onclick=()=>{$('evoOv').classList.remove('show');say(LINES[stageOf(S.total)][0])};
+$('resetYes').onclick=()=>{const keep={mode:S.mode,range:S.range,sound:S.sound};S=Object.assign(blank(),keep);streak=0;retry=[];save();$('resetOv').classList.remove('show');renderAll();say('…ごとごと')};
+$('evoOk').onclick=()=>{$('evoOv').classList.remove('show');const st=stageOf(S.total);if(st===4)return setTimeout(thanks,300);if(st===1)return askName();say(LINES[st][0])};
+$('thxOk').onclick=()=>{$('thxOv').classList.remove('show');layEgg()};
+
+/* ---- backup ---- */
 const enc=()=>'KP1:'+btoa(unescape(encodeURIComponent(JSON.stringify(S))));
+const dec=c=>{const v=JSON.parse(decodeURIComponent(escape(atob(c.trim().replace(/^KP1:/,'')))));if(!v||!v.bag||!v.fed)throw 0;return v};
 $('bkBtn').onclick=()=>{$('bkTxt').value=enc();$('bkMsg').textContent='';$('bkOv').classList.add('show')};
 $('bkClose').onclick=()=>$('bkOv').classList.remove('show');
 $('bkCopy').onclick=async()=>{const t=$('bkTxt');t.value=enc();try{await navigator.clipboard.writeText(t.value);$('bkMsg').textContent='コピーしました'}catch(e){t.focus();t.select();$('bkMsg').textContent='もじを ながおしして コピーしてね'}};
-$('bkLoad').onclick=()=>{try{const raw=$('bkTxt').value.trim().replace(/^KP1:/,'');const v=JSON.parse(decodeURIComponent(escape(atob(raw))));if(!v||!v.bag||!v.fed)throw 0;
-  S=Object.assign(blank(),v);if(S.day!==today){S.day=today;S.todayOk=0}streak=0;retry=[];save();renderAll();$('bkMsg').textContent=S.name+'の データを よみこみました！';say(LINES[stageOf(S.total)][0])}catch(e){$('bkMsg').textContent='よみこめませんでした。もじを ぜんぶ はりつけてね'}};
-const dec=c=>{const v=JSON.parse(decodeURIComponent(escape(atob(c.trim().replace(/^KP1:/,'')))));if(!v||!v.bag||!v.fed)throw 0;return v};
+function load(v){S=norm(v);S.saved=Date.now();streak=0;retry=[];save();renderAll();say(LINES[stageOf(S.total)][0])}
+$('bkLoad').onclick=()=>{try{load(dec($('bkTxt').value));$('bkMsg').textContent=S.name+'の データを よみこみました！'}catch(e){$('bkMsg').textContent='よみこめませんでした。もじを ぜんぶ はりつけてね'}};
 let pend=null;
 try{const h=decodeURIComponent(location.hash);if(h.startsWith('#r=')){pend=dec(h.slice(3));history.replaceState(null,'',location.pathname);
   $('rsTxt').textContent=pend.name+'（たべた かず '+pend.total+'こ）を よみこみます。いまの データは うわがきされます。';$('rsOv').classList.add('show')}}catch(e){}
 $('rsNo').onclick=()=>{pend=null;$('rsOv').classList.remove('show')};
-$('rsYes').onclick=()=>{if(pend){S=Object.assign(blank(),pend);if(S.day!==today){S.day=today;S.todayOk=0}S.saved=Date.now();streak=0;retry=[];save();renderAll();say(LINES[stageOf(S.total)][0])}pend=null;$('rsOv').classList.remove('show')};
+$('rsYes').onclick=()=>{if(pend)load(pend);pend=null;$('rsOv').classList.remove('show')};
+
 renderAll();
+if(stageOf(S.total)===4&&!anyOv())setTimeout(thanks,600);
 }
 </script>
 </body>
