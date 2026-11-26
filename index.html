@@ -439,6 +439,7 @@ try{const h=decodeURIComponent(location.hash);if(h.startsWith('#r=')){pend=dec(h
 $('rsNo').onclick=()=>{pend=null;$('rsOv').classList.remove('show')};
 $('rsYes').onclick=()=>{if(pend)load(pend);pend=null;$('rsOv').classList.remove('show')};
 
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 renderAll();
 if(stageOf(S.total)===4&&!anyOv())setTimeout(thanks,600);
 }
